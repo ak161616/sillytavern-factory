@@ -1,26 +1,30 @@
-# 使用官方 Node.js 18 Alpine 镜像，它包含了我们需要的一切
+# 使用官方 Node.js 18 Alpine 镜像
 FROM node:18-alpine
 
-# 安装 tini 和 git
-RUN apk add --no-cache tini git
+# 安装 tini, git, 和 dos2unix (或 sed) 所需的工具
+RUN apk add --no-cache tini git sed
 
-# 设置并创建工作目录
+# 设置工作目录
 WORKDIR /app
 
-# 核心修正：先克隆 SillyTavern，这样 package.json 就位了
+# 克隆 SillyTavern
 RUN git clone -b staging --depth 1 https://github.com/SillyTavern/SillyTavern.git .
 
-# 现在，在有 package.json 的情况下，安全地安装依赖
-# 同时，我们为这一步分配更多内存，以防万一
+# 安装依赖
 RUN npm i --no-audit --no-fund --loglevel=error --no-progress --omit=dev --force --node-options=--max-old-space-size=1024 && \
     npm cache clean --force
 
-# 运行前端构建脚本
+# 运行前端构建
 RUN node docker/build-lib.js
 
-# 复制我们的自定义启动脚本
+# 复制我们的启动脚本
 COPY start.sh /app/start.sh
+
+# 赋予执行权限
 RUN chmod +x /app/start.sh
+
+# 关键修复：强制转换换行符为 Unix 格式
+RUN sed -i 's/\r$//' /app/start.sh
 
 # 暴露端口并设置入口点
 EXPOSE 8000
