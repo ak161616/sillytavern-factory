@@ -61,4 +61,4 @@ if [ -n "$REPO_URL" ] && [ -n "$GITHUB_TOKEN" ]; then
 fi
 
 echo "--- [Launcher V6] All setup complete. Starting SillyTavern server... ---"
-exec node server.jsp
+exec node server.js
