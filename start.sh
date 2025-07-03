@@ -1,11 +1,11 @@
 #!/bin/sh
-# 最终版启动脚本 (V9 - Clone First)
+# 最终版启动脚本 (V10 - Clean Slate)
 set -e
 
-echo "--- [Launcher V9] Starting..."
+echo "--- [Launcher V10] Starting..."
 cd /app
 
-# 验证 ConfigMap 是否已挂载
+# 验证 ConfigMap
 if [ ! -f "/app/config.yaml" ]; then
     echo "CRITICAL: config.yaml not found!"
     exit 1
@@ -16,12 +16,15 @@ if [ -n "$REPO_URL" ] && [ -n "$GITHUB_TOKEN" ]; then
     echo "--- [Cloud Save] Initializing with robust Clone method..."
     DATA_DIR="/app/data"
 
-    # 核心修正：不再 init，而是直接 clone
-    # 这是一个更可靠的、原子性的操作
+    # 核心修正：在克隆之前，强制删除任何可能存在的旧数据目录
+    echo "--- [Cloud Save] Cleaning up old data directory (if any)..."
+    rm -rf "$DATA_DIR"
+
+    # 现在，在一个绝对干净的路径上进行克隆
+    echo "--- [Cloud Save] Cloning repository into a clean path..."
     REPO_HOSTNAME_AND_PATH=$(echo "$REPO_URL" | sed -e 's/https?:\/\///g')
     AUTH_REPO_URL="https://oauth2:${GITHUB_TOKEN}@${REPO_HOSTNAME_AND_PATH}"
     
-    # 克隆远程仓库到数据目录
     git clone "$AUTH_REPO_URL" "$DATA_DIR"
     echo "--- [Cloud Save] Repository successfully cloned."
     
@@ -45,5 +48,5 @@ if [ -n "$REPO_URL" ] && [ -n "$GITHUB_TOKEN" ]; then
     cd /app
 fi
 
-echo "--- [Launcher V9] All setup complete. Starting SillyTavern server..."
+echo "--- [Launcher V10] All setup complete. Starting SillyTavern server..."
 exec node server.js
