@@ -1,35 +1,35 @@
 #!/bin/sh
-# 最终版启动脚本 (V11 - Mount and Copy)
+# 最终版启动脚本 (V12 - Precise URL)
 set -e
 
-echo "--- [Launcher V11] Starting..."
+echo "--- [Launcher V12] Starting..."
 cd /app
 
-# 核心修正：从中转站复制配置文件到工作目录
-CONFIG_SOURCE="/config_mount/config.yaml"
-CONFIG_DEST="/app/config.yaml"
-
-if [ -f "$CONFIG_SOURCE" ]; then
-    echo "--- [Launcher V11] Found config file at mount point. Copying to destination..."
-    cp "$CONFIG_SOURCE" "$CONFIG_DEST"
-    echo "--- [Launcher V11] Config file successfully copied."
-else
-    echo "CRITICAL: Config file not found at the source mount point ($CONFIG_SOURCE)! Please check your ConfigMap settings."
+# 验证 ConfigMap
+if [ ! -f "/app/config.yaml" ]; then
+    echo "CRITICAL: config.yaml not found!"
     exit 1
 fi
 
-# 配置云存档 (这部分逻辑不变)
+# 配置云存档
 if [ -n "$REPO_URL" ] && [ -n "$GITHUB_TOKEN" ]; then
     echo "--- [Cloud Save] Initializing..."
     DATA_DIR="/app/data"
-    rm -rf "$DATA_DIR" # 强制清理，确保每次都是干净的克隆
-    REPO_HOSTNAME_AND_PATH=$(echo "$REPO_URL" | sed -e 's/https?:\/\///g')
-    AUTH_REPO_URL="https://oauth2:${GITHUB_TOKEN}@${REPO_HOSTNAME_AND_PATH}"
+    rm -rf "$DATA_DIR"
+
+    # 核心修正：不再处理URL，直接使用您提供的地址
+    # 假设 REPO_URL 的格式为 "github.com/user/repo"
+    AUTH_REPO_URL="https://oauth2:${GITHUB_TOKEN}@${REPO_URL}"
+    
+    echo "--- [Cloud Save] Cloning with precise URL: ${REPO_URL}..."
     git clone "$AUTH_REPO_URL" "$DATA_DIR"
     echo "--- [Cloud Save] Repository successfully cloned."
+    
     cd "$DATA_DIR"
     git config --global user.name "SillyTavern Backup"
     git config --global user.email "backup@claw.cloud"
+
+    # 启动后台自动保存
     (
         while true; do
             sleep "$((${AUTOSAVE_INTERVAL:-30} * 60))"
@@ -39,9 +39,9 @@ if [ -n "$REPO_URL" ] && [ -n "$GITHUB_TOKEN" ]; then
             fi
         done
     ) &
-    echo "--- [Cloud Save] Auto-save process is now running in the background."
+    echo "--- [Cloud Save] Auto-save process is now running."
     cd /app
 fi
 
-echo "--- [Launcher V11] All setup complete. Starting SillyTavern server..."
+echo "--- [Launcher V12] All setup complete. Starting server..."
 exec node server.js
